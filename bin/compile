@@ -1,0 +1,51 @@
+#!/bin/sh
+
+install_nodejs() {
+  local version=${1:-14.x}
+  local dir="${2:?}"
+  local code resolve_result
+
+  if [[ -n "$NODE_BINARY_URL" ]]; then
+    url="$NODE_BINARY_URL"
+    echo "Downloading and installing node from $url"
+  else
+    echo "Resolving node version $version..."
+    resolve_result=$(resolve node "$version" || echo "failed")
+
+    read -r number url < <(echo "$resolve_result")
+
+    if [[ "$resolve_result" == "failed" ]]; then
+      fail_bin_install node "$version"
+    fi
+
+    echo "Downloading and installing node $number..."
+  fi
+
+  code=$(curl "$url" -L --silent --fail --retry 5 --retry-max-time 15 -o /tmp/node.tar.gz --write-out "%{http_code}")
+
+  if [ "$code" != "200" ]; then
+    echo "Unable to download node: $code" && false
+  fi
+  rm -rf "${dir:?}"/*
+  tar xzf /tmp/node.tar.gz --strip-components 1 -C "$dir"
+  chmod +x "$dir"/bin/*
+}
+
+mkdir -p "$BUILD_DIR/.heroku/node/"
+cd "$BUILD_DIR"
+
+local node_engine npm_engine npm_version node_version
+
+node_engine=$(read_json "$BUILD_DIR/package.json" ".engines.node")
+npm_engine=$(read_json "$BUILD_DIR/package.json" ".engines.npm")
+
+echo "engines.node (package.json):  ${node_engine:-unspecified}"
+echo "engines.npm (package.json):   ${npm_engine:-unspecified (use default)}"
+
+install_nodejs "$node_engine" "$BUILD_DIR/.heroku/node"
+
+echo "-----> Install pnpm"
+curl -sL https://unpkg.com/@pnpm/self-installer | node
+
+pnpm --filter="$APP_NAME" install
+pnpm --filter="$APP_NAME" build
