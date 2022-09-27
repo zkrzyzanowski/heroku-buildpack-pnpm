@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 install_nodejs() {
   local version=${1:-14.x}
@@ -34,7 +34,7 @@ install_nodejs() {
 mkdir -p "$BUILD_DIR/.heroku/node/"
 cd "$BUILD_DIR"
 
-local node_engine npm_engine npm_version node_version
+node_engine npm_engine npm_version node_version
 
 node_engine=$(read_json "$BUILD_DIR/package.json" ".engines.node")
 npm_engine=$(read_json "$BUILD_DIR/package.json" ".engines.npm")

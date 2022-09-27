@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ -f "$1/pnpm-lock.yaml" ]; then
     echo "pnpm app"
